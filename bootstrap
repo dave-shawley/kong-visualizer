@@ -1,0 +1,28 @@
+#!/bin/sh -e
+
+docker-compose kill
+docker-compose down --remove-orphans --volumes
+docker-compose up -d kong-database
+
+printf 'Waiting for database to come on-line...'
+while
+    ! docker-compose run --rm -T \
+          -e PGPASSWORD='my-secret' kong-database \
+          psql -h kong-database -U postgres \
+          -c 'select 1' >/dev/null 2>&1
+do
+    sleep 1
+    printf '.'
+done
+echo ' online!'
+
+printf 'Installing database...'
+printf ' bootstrapping...'
+docker-compose run --rm -T --no-deps kong kong migrations bootstrap >/dev/null 2>&1
+printf ' updating...'
+docker-compose run --rm -T --no-deps kong kong migrations up >/dev/null 2>&1
+printf ' finishing...'
+docker-compose run --rm -T --no-deps kong kong migrations up >/dev/null 2>&1
+echo ' finished.'
+
+docker-compose up -d kong
