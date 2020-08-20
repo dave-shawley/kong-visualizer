@@ -1,0 +1,72 @@
+{
+  "name": "kong-visualizer",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.4.0",
+    "core-js": "^3.6.5",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-redux": "^7.2.1",
+    "react-scripts": "^3.4.3",
+    "redux": "^4.0.5",
+    "redux-logger": "^3.0.6",
+    "redux-mock-store": "^1.5.4",
+    "redux-thunk": "^2.3.0",
+    "semantic-ui-react": "^1.0.0",
+    "typescript": "^3.9.7",
+    "uuid": "^8.3.0"
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx,json,css,sccs,md}": [
+      "prettier --write"
+    ]
+  },
+  "proxy": "http://127.0.0.1:38001",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/react": "^9.5.0",
+    "@testing-library/user-event": "^7.2.1",
+    "dockerode": "^3.2.1",
+    "fetch-mock": "^9.10.7",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.11",
+    "msw": "^0.20.1",
+    "prettier": "^2.0.5"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!<rootDir>/node_modules/"
+    ]
+  },
+  "babel": {
+    "presets": [
+      "@babel/preset-env"
+    ],
+    "plugins": [
+      "@babel/plugin-proposal-object-rest-spread"
+    ]
+  }
+}

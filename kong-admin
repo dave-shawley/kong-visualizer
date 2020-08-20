@@ -1,0 +1,104 @@
+#!/bin/sh -e
+# vim: set ts=4 sw=4 sts=4 noet:
+
+tmp_dir=`mktemp -q -d kong-admin-XXXXXX`
+if test $? -ne 0
+then
+	echo "$0: failed to create temporary directory, exiting."
+	exit 75
+fi
+trap 'rm -fr "$tmp_dir"' 0
+
+admin_port=`docker-compose port kong 8001 | cut -d: -f2`
+admin_url=http://127.0.0.1:$admin_port
+curl_prg=`which curl`
+verbose=false
+while
+	getopts v arg
+do
+	case "$arg"
+	in
+	v) verbose=true ;;
+	?) echo "$0: invalid option '$arg' ignored." ;;
+	esac
+done
+shift $(($OPTIND - 1))
+
+method=$1
+shift
+path=$1
+shift
+
+case "$path"
+in
+/*) ;;
+*)  path="/$path" ;;
+esac
+
+cat>"$tmp_dir/base-curlrc"<<EOF
+globoff
+output = "$tmp_dir/output.json"
+write-out = %{http_code}
+request = "`echo "$method" | tr a-z A-Z`"
+EOF
+if $verbose
+then
+	echo 'verbose' >>"$tmp_dir/base-curlrc"
+else
+	echo 'silent' >>"$tmp_dir/base-curlrc"
+fi
+
+cp "$tmp_dir/base-curlrc" "$tmp_dir/curlrc"
+for arg
+do
+	cat>>"$tmp_dir/curlrc"<<-EOF
+	data-urlencode = "$arg"
+	EOF
+done
+
+if $verbose
+then
+	echo 'Curl Configuration File'
+	cat "$tmp_dir/curlrc" | sed 's/^/    /g'
+fi
+
+curl() {
+	status=`$curl_prg --config "$tmp_dir/curlrc" "$1"`
+	datasz=`ls -ln "$tmp_dir/output.json" | awk '{print $5}'`
+	case "$status"
+	in
+	4*|5*)
+		if test $datasz -ne 0
+		then
+			cat "$tmp_dir/output.json" | jq -S .
+		fi
+		echo "$0: curl $1 failed: $status."
+		return 1
+		;;
+	esac
+}
+
+curl "$admin_url$path"
+next_url=`cat "$tmp_dir/output.json" | jq -r .next`
+if ! grep -q '"next"' "$tmp_dir/output.json"
+then
+	cat "$tmp_dir/output.json" | jq -S .
+else
+	cat "$tmp_dir/output.json" | jq '.data[]' > "$tmp_dir/data.json"
+	cp "$tmp_dir/base-curlrc" "$tmp_dir/curlrc"
+	while
+		test -n "$next_url" -a "$next_url" != 'null'
+	do
+		curl "$admin_url$next_url"
+		next_url=`cat "$tmp_dir/output.json" | jq -r .next`
+		cat "$tmp_dir/output.json" | jq '.data[]' >> "$tmp_dir/data.json"
+	done
+	filesz=`ls -ln "$tmp_dir/data.json" | awk '{print $5}'`
+	if test "$filesz" -eq 0
+	then
+		echo 'No output captured.'
+	else
+		cat "$tmp_dir/data.json" | jq -S .
+	fi
+fi
+

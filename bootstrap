@@ -2,7 +2,7 @@
 
 docker-compose kill
 docker-compose down --remove-orphans --volumes
-docker-compose up -d kong-database
+docker-compose up -d httpbin kong-database
 
 printf 'Waiting for database to come on-line...'
 while
@@ -26,3 +26,11 @@ docker-compose run --rm -T --no-deps kong kong migrations up >/dev/null 2>&1
 echo ' finished.'
 
 docker-compose up -d kong
+cat<<EOF
+
+Your local environment is up and running.
+
+  Kong Proxy API - http://127.0.0.1:38000
+  Kong Admin API - http://127.0.0.1:38001
+
+EOF
