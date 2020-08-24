@@ -1,0 +1,123 @@
+So I needed to write a non-trivial React-Redux application to understand
+how it fits into a new architecture that I am working through.  This
+repository is the result of that.  This is not a great example of a
+polished JavaScript SPA since I know nearly nothing about writing them.
+*This is the first time that I have written anything beyond completely
+vanilla JS so keep that in mind.*
+
+I chose to write a application that shows the routing table from a Kong
+Proxy instance in a table and show which route(s) match a request.  See
+the Kong Administrative API [1] for the API that the application uses and
+the Proxy Reference [2] for a description of the logic that I am trying
+to replicate.
+
+I did local development on my MacBookPro with Kong running in a docker
+container.  You will need node.js [3] and docker-compose [4] installed to
+duplicate the environment.  The *bootstrap* script will start up Kong,
+postgres, and httpbin in the docker environment.
+
+    $ ./bootstrap
+    Creating network "visualizer_default" with the default driver
+    Creating visualizer_kong-database_1 ... done
+    Creating visualizer_httpbin_1       ... done
+    Waiting for database to come on-line.... online!
+    Installing database... bootstrapping... updating... finishing... finished.
+    visualizer_kong-database_1 is up-to-date
+    Creating visualizer_kong_1 ... done
+    
+    Your local environment is up and running.
+    
+      Kong Proxy API - http://127.0.0.1:38000
+      Kong Admin API - http://127.0.0.1:38001
+    
+    $
+
+Once Kong is running, you can use the *kong-admin* shell script to easily
+manipulate the Kong administrative API.  It does require that you have the
+wonderful jq utility installed [5].
+
+    $ ./kong-admin post /services name=some-service host=httpbin
+    {
+      "ca_certificates": null,
+      "client_certificate": null,
+      "connect_timeout": 60000,
+      "created_at": 1598269214,
+      "host": "httpbin",
+      "id": "0b01701e-46ce-4a33-9105-e67f1c3cc6cf",
+      "name": "some-service",
+      "path": null,
+      "port": 80,
+      "protocol": "http",
+      "read_timeout": 60000,
+      "retries": 5,
+      "tags": null,
+      "tls_verify": null,
+      "tls_verify_depth": null,
+      "updated_at": 1598269214,
+      "write_timeout": 60000
+    }
+    
+    $ ./kong-admin post /services/some-service/routes name=route-to-get \
+    > 'methods[]=GET' 'paths[]=/get' strip_path=false
+    {
+      "created_at": 1598269319,
+      "destinations": null,
+      "headers": null,
+      "hosts": null,
+      "https_redirect_status_code": 426,
+      "id": "9366aa05-f183-476f-807e-c8618e43144b",
+      "methods": [
+        "GET"
+      ],
+      "name": "route-to-get",
+      "path_handling": "v0",
+      "paths": [
+        "/get"
+      ],
+      "preserve_host": false,
+      "protocols": [
+        "http",
+        "https"
+      ],
+      "regex_priority": 0,
+      "service": {
+        "id": "0b01701e-46ce-4a33-9105-e67f1c3cc6cf"
+      },
+      "snis": null,
+      "sources": null,
+      "strip_path": false,
+      "tags": null,
+      "updated_at": 1598269319
+    }
+    
+    $ curl http://127.0.0.1:38000/get
+    {
+      "args": {},
+      "headers": {
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "Host": "httpbin",
+        "User-Agent": "curl/7.64.1",
+        "X-Forwarded-Host": "127.0.0.1",
+        "X-Forwarded-Prefix": "/get"
+      },
+      "origin": "172.30.0.1",
+      "url": "http://127.0.0.1/get"
+    }
+
+Now you are ready to start up the JS application.  It is in the
+*kong-visualizer* sub-directory.  All that you should have to do is:
+
+1. open a console in the directory
+2. run *npm install* to install the application.
+3. run *npm start* to start the application and open a browser
+
+The UI is simple... enter the Kong Admin URL and press the Connect button.
+I pre-populated the locally running Kong URL so all that you need to do is
+press Connect.
+
+[1]: https://docs.konghq.com/2.1.x/admin-api/
+[2]: https://docs.konghq.com/2.1.x/proxy/
+[3]: https://nodejs.org/en/
+[4]: https://www.docker.com/products/docker-desktop
+[5]: https://stedolan.github.io/jq/

@@ -1,6 +1,13 @@
 {
   "name": "kong-visualizer",
   "version": "0.0.0",
+  "author": {
+    "name": "Dave Shawley",
+    "email": "daveshawley@gmail.com"
+  },
+  "homepage": "https://github.com/dave-shawley/kong-visualizer",
+  "license": "BSD-3-Clause",
+  "repository": "github:dave-shawley/kong-visualizer",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.4.0",
