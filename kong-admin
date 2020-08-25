@@ -1,6 +1,13 @@
 #!/bin/sh -e
 # vim: set ts=4 sw=4 sts=4 noet:
 
+if ! command -v jq >/dev/null 2>&1
+then
+	echo "ERROR: jq is not installed, please install it from"
+	echo "       https://stedolan.github.io/jq/"
+	exit 1
+fi
+
 tmp_dir=`mktemp -q -d kong-admin-XXXXXX`
 if test $? -ne 0
 then
