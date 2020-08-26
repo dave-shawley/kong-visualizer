@@ -109,7 +109,7 @@ class RouteMap extends React.Component {
                 <Table.Cell>{routeInfo.routeName}</Table.Cell>
                 <Table.Cell>{routeInfo.vhost}</Table.Cell>
                 <Table.Cell>{routeInfo.method}</Table.Cell>
-                <Table.Cell>{routeInfo.path}</Table.Cell>
+                <Table.Cell>{routeInfo.path.source}</Table.Cell>
                 <Table.Cell>{routeInfo.target}</Table.Cell>
                 <Table.Cell>{routeInfo.effectiveURL}</Table.Cell>
                 <Table.Cell>{routeInfo.matchInfo.priority}</Table.Cell>
@@ -149,10 +149,15 @@ const buildRouteList = (routeIds, kongEntities) => {
         for (const method of methods) {
           rows.push({
             ...row,
-            matchInfo: { matched: false, selected: false, priority: 0 },
+            matchInfo: {
+              matched: false,
+              selected: false,
+              priority: 0,
+              weight: 0,
+            },
             key: uuidv4(),
             method: method,
-            path: path,
+            path: new RegExp(path),
             vhost: vhost,
             effectiveURL: `${serviceInfo.protocol}://${routedHost}:${serviceInfo.port}${routedPath}`,
           });
@@ -185,7 +190,6 @@ const highlightSearchResults = (routeList, search) => {
   // find rows that match
   const propNames = ["path", "vhost", "method"];
   const targetProps = propNames.filter((prop) => search[prop] !== null);
-  let maxPriority = 0;
   console.log("Highlighting results with:", targetProps);
   for (let row of routeList) {
     row.matchInfo.matched = true;
@@ -193,30 +197,55 @@ const highlightSearchResults = (routeList, search) => {
     propNames.forEach((name) => {
       if (row[name] !== "*") {
         // we have a value, if it doesn't match, then we are done
-        if (row[name] !== search[name]) {
+        let matched;
+        if (name === "path") {
+          const pathMatch = row[name].exec(search[name]);
+          if (pathMatch !== null) {
+            matched = true;
+            row.matchInfo.weight = row[name].source.length;
+          }
+        } else {
+          matched = row[name] === search[name];
+        }
+        if (matched) {
+          row.matchInfo.priority++;
+        } else {
           console.log(
             `discarding ${row.effectiveURL} due to ${name} != ${search[name]}`
           );
           row.matchInfo.matched = false;
-        } else {
-          row.matchInfo.priority++;
         }
       }
     });
   }
 
-  maxPriority = routeList.reduce(
+  // find the rows with the largest number of matching properties
+  const maxPriority = routeList.reduce(
     (priority, row) =>
       row.matchInfo.matched && row.matchInfo.priority > priority
         ? row.matchInfo.priority
         : priority,
     0
   );
-  routeList
-    .filter((row) => row.matchInfo.priority === maxPriority)
-    .forEach((row) => {
-      row.matchInfo.selected = row.matchInfo.matched;
-    });
+  const maxWeight = routeList.reduce(
+    (weight, row) =>
+      row.matchInfo.matched && row.matchInfo.weight > weight
+        ? row.matchInfo.weight
+        : weight,
+    0
+  );
+  let selectedRows = routeList.filter(
+    (row) =>
+      row.matchInfo.matched &&
+      row.matchInfo.priority === maxPriority &&
+      row.matchInfo.weight === maxWeight
+  );
+
+  // TODO whittle down based on path match length and regex priority
+
+  selectedRows.forEach((row) => {
+    row.matchInfo.selected = true;
+  });
 };
 
 const mapStateToProps = (state) => {
