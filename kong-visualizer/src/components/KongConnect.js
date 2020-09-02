@@ -36,10 +36,12 @@ class KongConnect extends React.Component {
               ]}
               defaultValue={this.props.scheme}
               onChange={this.setProtocol.bind(this)}
+              testid="protocolDropdown"
             />
           }
           defaultValue={`${this.props.hostAndPort}`}
           onChange={this.setHostAndPort.bind(this)}
+          testid="hostAndPortInput"
         />
         <Button onClick={this.connectToKong.bind(this)}>Connect</Button>
       </Menu>
